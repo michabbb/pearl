@@ -209,7 +209,7 @@ export async function normalizeParentChildDeps(
   try {
     await queryWithRetry(getConfig(), async (conn) => {
       const [rows] = await conn.query<RowDataPacket[]>(
-        `SELECT issue_id, depends_on_id, created_by, created_at
+        `SELECT issue_id, depends_on_issue_id AS depends_on_id, created_by, created_at
          FROM dependencies WHERE type = 'parent-child'`,
       );
       if ((rows as unknown[]).length === 0) return;
@@ -221,12 +221,12 @@ export async function normalizeParentChildDeps(
           created_by: string;
           created_at: Date;
         }>) {
-          await conn.execute(`DELETE FROM dependencies WHERE issue_id = ? AND depends_on_id = ?`, [
+          await conn.execute(`DELETE FROM dependencies WHERE issue_id = ? AND depends_on_issue_id = ?`, [
             row.issue_id,
             row.depends_on_id,
           ]);
           await conn.execute(
-            `INSERT IGNORE INTO dependencies (issue_id, depends_on_id, type, created_by, created_at)
+            `INSERT IGNORE INTO dependencies (issue_id, depends_on_issue_id, type, created_by, created_at)
              VALUES (?, ?, 'contains', ?, ?)`,
             [row.depends_on_id, row.issue_id, row.created_by, row.created_at],
           );
@@ -381,13 +381,13 @@ export function registerIssueRoutes(
       for (const prop of props) {
         switch (prop) {
           case "has_dependency":
-            sql += ` AND EXISTS (SELECT 1 FROM dependencies d WHERE d.issue_id = i.id OR d.depends_on_id = i.id)`;
+            sql += ` AND EXISTS (SELECT 1 FROM dependencies d WHERE d.issue_id = i.id OR d.depends_on_issue_id = i.id)`;
             break;
           case "is_blocked":
-            sql += ` AND EXISTS (SELECT 1 FROM dependencies d JOIN issues dep ON dep.id = d.depends_on_id WHERE d.issue_id = i.id AND d.type IN ('blocks', 'depends_on') AND dep.status != 'closed')`;
+            sql += ` AND EXISTS (SELECT 1 FROM dependencies d JOIN issues dep ON dep.id = d.depends_on_issue_id WHERE d.issue_id = i.id AND d.type IN ('blocks', 'depends_on') AND dep.status != 'closed')`;
             break;
           case "not_blocked":
-            sql += ` AND NOT EXISTS (SELECT 1 FROM dependencies d JOIN issues dep ON dep.id = d.depends_on_id WHERE d.issue_id = i.id AND d.type IN ('blocks', 'depends_on') AND dep.status != 'closed')`;
+            sql += ` AND NOT EXISTS (SELECT 1 FROM dependencies d JOIN issues dep ON dep.id = d.depends_on_issue_id WHERE d.issue_id = i.id AND d.type IN ('blocks', 'depends_on') AND dep.status != 'closed')`;
             break;
           case "is_epic":
             sql += ` AND i.issue_type = 'epic'`;
@@ -396,7 +396,7 @@ export function registerIssueRoutes(
             sql += ` AND (i.assignee IS NULL OR i.assignee = '')`;
             break;
           case "no_parent":
-            sql += ` AND NOT EXISTS (SELECT 1 FROM dependencies d WHERE (d.depends_on_id = i.id AND d.type = 'contains') OR (d.issue_id = i.id AND d.type = 'parent-child'))`;
+            sql += ` AND NOT EXISTS (SELECT 1 FROM dependencies d WHERE (d.depends_on_issue_id = i.id AND d.type = 'contains') OR (d.issue_id = i.id AND d.type = 'parent-child'))`;
             break;
         }
       }
@@ -572,9 +572,9 @@ export function registerIssueRoutes(
 
     const dependencies = await queryWithRetry(getConfig(), async (conn) => {
       const [rows] = await conn.query(
-        `SELECT issue_id, depends_on_id, type, created_at, created_by
+        `SELECT issue_id, depends_on_issue_id AS depends_on_id, type, created_at, created_by
          FROM dependencies
-         WHERE issue_id = ? OR depends_on_id = ?`,
+         WHERE issue_id = ? OR depends_on_issue_id = ?`,
         [id, id],
       );
       return rows;

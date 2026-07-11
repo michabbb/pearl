@@ -107,7 +107,7 @@ export class IssueWriter {
       await queryWithRetry(this.config, async (conn) => {
         await conn.beginTransaction();
         try {
-          await conn.execute("DELETE FROM dependencies WHERE depends_on_id = ?", [id]);
+          await conn.execute("DELETE FROM dependencies WHERE depends_on_issue_id = ?", [id]);
           await conn.execute("DELETE FROM issues WHERE id = ?", [id]);
           await conn.commit();
         } catch (err) {

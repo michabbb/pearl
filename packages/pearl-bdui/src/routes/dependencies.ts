@@ -29,7 +29,7 @@ export function registerDependencyRoutes(
   app.get("/api/dependencies", async (_request, reply) => {
     const dependencies = await queryWithRetry(getConfig(), async (conn) => {
       const [rows] = await conn.query(
-        `SELECT issue_id, depends_on_id, type, created_at, created_by
+        `SELECT issue_id, depends_on_issue_id AS depends_on_id, type, created_at, created_by
          FROM dependencies
          ORDER BY created_at DESC
          LIMIT 5000`,

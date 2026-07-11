@@ -302,7 +302,7 @@ export async function sqlCreateIssue(
 
       if (req.parent) {
         await conn.execute(
-          `INSERT INTO dependencies (issue_id, depends_on_id, type, created_by)
+          `INSERT INTO dependencies (issue_id, depends_on_issue_id, type, created_by)
            VALUES (?, ?, 'contains', ?)`,
           [req.parent, id, ACTOR],
         );
@@ -612,7 +612,7 @@ export async function sqlAddDependency(
       if (!foundIds.has(dependsOnId)) throw notFoundError("Issue", dependsOnId);
 
       await conn.execute(
-        `INSERT IGNORE INTO dependencies (issue_id, depends_on_id, type, created_by)
+        `INSERT IGNORE INTO dependencies (issue_id, depends_on_issue_id, type, created_by)
          VALUES (?, ?, 'blocks', ?)`,
         [issueId, dependsOnId, ACTOR],
       );
@@ -652,7 +652,7 @@ export async function sqlRemoveDependency(
   return queryWithRetry(config, async (conn) => {
     await conn.beginTransaction();
     try {
-      await conn.execute("DELETE FROM dependencies WHERE issue_id = ? AND depends_on_id = ?", [
+      await conn.execute("DELETE FROM dependencies WHERE issue_id = ? AND depends_on_issue_id = ?", [
         issueId,
         dependsOnId,
       ]);

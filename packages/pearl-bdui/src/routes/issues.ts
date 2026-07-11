@@ -1,5 +1,6 @@
 import type { CreateIssueRequest, UpdateIssueRequest } from "@pearl/shared";
 import { ISSUE_LIST_FIELDS, ISSUE_STATUSES, ISSUE_TYPES } from "@pearl/shared";
+import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import type { RowDataPacket } from "mysql2";
 import type { Config } from "../config.js";
@@ -226,9 +227,9 @@ export async function normalizeParentChildDeps(
             row.depends_on_id,
           ]);
           await conn.execute(
-            `INSERT IGNORE INTO dependencies (issue_id, depends_on_issue_id, type, created_by, created_at)
-             VALUES (?, ?, 'contains', ?, ?)`,
-            [row.depends_on_id, row.issue_id, row.created_by, row.created_at],
+            `INSERT IGNORE INTO dependencies (id, issue_id, depends_on_issue_id, type, created_by, created_at)
+             VALUES (?, ?, ?, 'contains', ?, ?)`,
+            [randomUUID(), row.depends_on_id, row.issue_id, row.created_by, row.created_at],
           );
         }
         await conn.commit();

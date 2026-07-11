@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { hostname } from "node:os";
 import type { CreateIssueRequest, InvalidationHint, UpdateIssueRequest } from "@pearl/shared";
 import { ATTACHMENT_HOST_FIELDS, hasAttachmentSyntax } from "@pearl/shared";
@@ -302,16 +302,16 @@ export async function sqlCreateIssue(
 
       if (req.parent) {
         await conn.execute(
-          `INSERT INTO dependencies (issue_id, depends_on_issue_id, type, created_by)
-           VALUES (?, ?, 'contains', ?)`,
-          [req.parent, id, ACTOR],
+          `INSERT INTO dependencies (id, issue_id, depends_on_issue_id, type, created_by)
+           VALUES (?, ?, ?, 'contains', ?)`,
+          [randomUUID(), req.parent, id, ACTOR],
         );
       }
 
       await conn.execute(
-        `INSERT INTO events (issue_id, event_type, actor, old_value, new_value, created_at)
-         VALUES (?, 'created', ?, '', '', ?)`,
-        [id, ACTOR, now],
+        `INSERT INTO events (id, issue_id, event_type, actor, old_value, new_value, created_at)
+         VALUES (?, ?, 'created', ?, '', '', ?)`,
+        [randomUUID(), id, ACTOR, now],
       );
 
       await conn.commit();
@@ -461,9 +461,9 @@ export async function sqlUpdateIssue(
       if (updates.due !== undefined) changes.due = updates.due;
 
       await conn.execute(
-        `INSERT INTO events (issue_id, event_type, actor, old_value, new_value, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [id, eventType, ACTOR, JSON.stringify(current), JSON.stringify(changes), now],
+        `INSERT INTO events (id, issue_id, event_type, actor, old_value, new_value, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [randomUUID(), id, eventType, ACTOR, JSON.stringify(current), JSON.stringify(changes), now],
       );
 
       await conn.commit();
@@ -523,9 +523,9 @@ export async function sqlCloseIssue(
       await conn.execute("UPDATE issues SET content_hash = ? WHERE id = ?", [newHash, id]);
 
       await conn.execute(
-        `INSERT INTO events (issue_id, event_type, actor, old_value, new_value, created_at)
-         VALUES (?, 'closed', ?, ?, ?, ?)`,
-        [id, ACTOR, JSON.stringify({ status: current.status }), reason || "", now],
+        `INSERT INTO events (id, issue_id, event_type, actor, old_value, new_value, created_at)
+         VALUES (?, ?, 'closed', ?, ?, ?, ?)`,
+        [randomUUID(), id, ACTOR, JSON.stringify({ status: current.status }), reason || "", now],
       );
 
       await conn.commit();
@@ -566,15 +566,15 @@ export async function sqlAddComment(
       const author = ACTOR;
 
       await conn.execute(
-        `INSERT INTO comments (issue_id, author, text, created_at)
-         VALUES (?, ?, ?, ?)`,
-        [issueId, author, text, now],
+        `INSERT INTO comments (id, issue_id, author, text, created_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [randomUUID(), issueId, author, text, now],
       );
 
       await conn.execute(
-        `INSERT INTO events (issue_id, event_type, actor, comment, created_at)
-         VALUES (?, 'commented', ?, ?, ?)`,
-        [issueId, author, text, now],
+        `INSERT INTO events (id, issue_id, event_type, actor, comment, created_at)
+         VALUES (?, ?, 'commented', ?, ?, ?)`,
+        [randomUUID(), issueId, author, text, now],
       );
 
       await conn.commit();
@@ -612,16 +612,16 @@ export async function sqlAddDependency(
       if (!foundIds.has(dependsOnId)) throw notFoundError("Issue", dependsOnId);
 
       await conn.execute(
-        `INSERT IGNORE INTO dependencies (issue_id, depends_on_issue_id, type, created_by)
-         VALUES (?, ?, 'blocks', ?)`,
-        [issueId, dependsOnId, ACTOR],
+        `INSERT IGNORE INTO dependencies (id, issue_id, depends_on_issue_id, type, created_by)
+         VALUES (?, ?, ?, 'blocks', ?)`,
+        [randomUUID(), issueId, dependsOnId, ACTOR],
       );
 
       const now = new Date();
       await conn.execute(
-        `INSERT INTO events (issue_id, event_type, actor, old_value, new_value, created_at)
-         VALUES (?, 'dependency_added', ?, '', ?, ?)`,
-        [issueId, ACTOR, dependsOnId, now],
+        `INSERT INTO events (id, issue_id, event_type, actor, old_value, new_value, created_at)
+         VALUES (?, ?, 'dependency_added', ?, '', ?, ?)`,
+        [randomUUID(), issueId, ACTOR, dependsOnId, now],
       );
 
       await conn.commit();
@@ -659,9 +659,9 @@ export async function sqlRemoveDependency(
 
       const now = new Date();
       await conn.execute(
-        `INSERT INTO events (issue_id, event_type, actor, old_value, new_value, created_at)
-         VALUES (?, 'dependency_removed', ?, ?, '', ?)`,
-        [issueId, ACTOR, dependsOnId, now],
+        `INSERT INTO events (id, issue_id, event_type, actor, old_value, new_value, created_at)
+         VALUES (?, ?, 'dependency_removed', ?, ?, '', ?)`,
+        [randomUUID(), issueId, ACTOR, dependsOnId, now],
       );
 
       await conn.commit();

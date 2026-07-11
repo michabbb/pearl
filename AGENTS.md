@@ -1,16 +1,6 @@
 # Agent Instructions
 
-This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
-
-## Quick Reference
-
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work atomically
-bd close <id>         # Complete work
-bd dolt push          # Push beads data to remote
-```
+This file is the canonical source of instructions and project context for all AI coding agents working on pearl.
 
 ## Non-Interactive Shell Commands
 
@@ -82,6 +72,42 @@ bd close <id>         # Complete work
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 <!-- END BEADS INTEGRATION -->
+
+## Build & Test
+
+```bash
+pnpm install          # Install all dependencies
+pnpm build            # Build all packages (shared must build first)
+pnpm test             # Run Vitest unit/integration tests
+pnpm typecheck        # TypeScript type checking across all packages
+pnpm lint             # Biome linter
+pnpm lint:fix         # Biome auto-fix
+pnpm format           # Biome formatter
+pnpm dev              # Start dev servers
+pnpm test:e2e         # Playwright E2E tests
+pnpm test:e2e:ui      # Playwright E2E with UI
+```
+
+Pre-commit hooks (Husky + lint-staged) run Biome checks automatically.
+
+## Architecture Overview
+
+pearl is a pnpm monorepo with three packages:
+
+- **`packages/shared`** -- TypeScript types (Issue, LabelDefinition, IssueStatus, Priority, IssueType). Built with `tsc`, outputs to `dist/`, and is consumed by both backend and frontend.
+- **`packages/pearl-bdui`** -- Node.js/Fastify backend server for the beads issue tracker web UI. Uses Dolt (Git-for-data SQL database) with a primary/replica split for concurrent access. Logging uses Fastify's built-in Pino integration.
+- **`packages/frontend`** -- React 19 SPA built with Vite and Tailwind CSS v4. Uses React Router for routing and TanStack Query for server-state management.
+
+**Database:** Dolt runs in embedded mode for local development and server mode for team/CI environments. The `bd` CLI writes directly to the primary database; the web UI reads from the replica. Backend mutations go to the primary database and reads use the replica.
+
+## Conventions & Patterns
+
+- **Tooling:** Use Biome for linting and formatting, not ESLint or Prettier. Use Vitest for tests and Playwright for E2E tests.
+- **Package manager:** Use pnpm workspaces exclusively. Never use npm or yarn.
+- **Issue tracking:** Use `bd` (beads) exclusively. Never use TodoWrite, TaskCreate, or Markdown TODO lists.
+- **Build order:** Build `packages/shared` before consumers because they import from its `dist/` output.
+- **Database access:** Preserve the primary/replica split. Mutations go to primary; reads go to replica.
+
 <!-- compound-agent:start -->
 ## Compound Agent Integration
 

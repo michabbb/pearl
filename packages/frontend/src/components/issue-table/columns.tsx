@@ -316,10 +316,14 @@ function InlineDateEditor({
   );
 }
 
-export interface EpicProgress {
+export interface IssueProgress {
   done: number;
   total: number;
-  childIds: string[];
+}
+
+export interface HierarchyInfo {
+  depth: number;
+  hasChildren: boolean;
 }
 
 export function buildColumns({
@@ -329,8 +333,9 @@ export function buildColumns({
   onAssigneeChange,
   onLabelsChange,
   onDueDateChange,
-  epicProgress,
-  expandedEpics,
+  issueProgress,
+  hierarchyInfo,
+  expandedIssueIds,
   onToggleExpand,
 }: {
   onStatusChange?: (id: string, status: IssueStatus) => void;
@@ -339,8 +344,9 @@ export function buildColumns({
   onAssigneeChange?: (id: string, assignee: string) => void;
   onLabelsChange?: (id: string, labels: string[]) => void;
   onDueDateChange?: (id: string, date: string | null) => void;
-  epicProgress?: Map<string, EpicProgress>;
-  expandedEpics?: Set<string>;
+  issueProgress?: Map<string, IssueProgress>;
+  hierarchyInfo?: Map<string, HierarchyInfo>;
+  expandedIssueIds?: Set<string>;
   onToggleExpand?: (id: string) => void;
 }) {
   return [
@@ -383,12 +389,17 @@ export function buildColumns({
       header: "Title",
       cell: (info) => {
         const issue = info.row.original;
-        const progress = epicProgress?.get(issue.id);
-        const isExpanded = expandedEpics?.has(issue.id);
+        const progress = issueProgress?.get(issue.id);
+        const hierarchy = hierarchyInfo?.get(issue.id);
+        const isExpanded = expandedIssueIds?.has(issue.id);
         return (
-          <div className="flex items-center gap-2 min-w-0 w-full">
-            {progress && onToggleExpand && (
+          <div
+            className="flex items-center gap-2 min-w-0 w-full"
+            style={{ paddingLeft: `${(hierarchy?.depth ?? 0) * 20}px` }}
+          >
+            {hierarchy?.hasChildren && onToggleExpand ? (
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onToggleExpand(issue.id);
@@ -398,7 +409,9 @@ export function buildColumns({
               >
                 {isExpanded ? "\u25BC" : "\u25B6"}
               </button>
-            )}
+            ) : hierarchy && hierarchy.depth > 0 ? (
+              <span className="shrink-0 w-5" aria-hidden="true" />
+            ) : null}
             {onTitleChange ? (
               <InlineTitleEditor
                 value={info.getValue()}

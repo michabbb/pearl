@@ -20,8 +20,8 @@ import { useToasts } from "@/hooks/use-toasts";
 import { buildApiParams, useUrlFilters } from "@/hooks/use-url-filters";
 import { cn } from "@/lib/utils";
 import { useListBulkActions } from "@/views/use-list-bulk-actions";
-import { useListEpicHierarchy } from "@/views/use-list-epic-hierarchy";
 import { useListFieldHandlers } from "@/views/use-list-field-handlers";
+import { useListHierarchy } from "@/views/use-list-hierarchy";
 import { useListTableState } from "@/views/use-list-table-state";
 
 export function ListView() {
@@ -35,13 +35,14 @@ export function ListView() {
   const { data: allDeps = [] } = useAllDependencies();
 
   const {
-    epicProgress,
+    issueProgress,
+    hierarchyInfo,
     topLevelOnly,
     setTopLevelOnly,
-    expandedEpics,
+    expandedIssueIds,
     handleToggleExpand,
     tableIssues,
-  } = useListEpicHierarchy(issues, allDeps);
+  } = useListHierarchy(issues, allDeps);
 
   const isMobile = useIsMobile();
   const { openIssueId: panelIssueId, openDetail, closeDetail } = useDetailPanel();
@@ -82,7 +83,7 @@ export function ListView() {
       onLabelsChange: handleLabelsChange,
       onDueDateChange: handleDueDateChange,
     },
-    { epicProgress, expandedEpics, onToggleExpand: handleToggleExpand },
+    { issueProgress, hierarchyInfo, expandedIssueIds, onToggleExpand: handleToggleExpand },
   );
 
   // When the detail panel/modal navigates to a different issue (e.g. via j/k while open),

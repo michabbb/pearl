@@ -3,14 +3,17 @@ import {
   type ColumnOrderState,
   type ColumnSizingState,
   getCoreRowModel,
-  getSortedRowModel,
   type RowSelectionState,
   type SortingState,
   useReactTable,
   type VisibilityState,
 } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
-import { buildColumns, type EpicProgress } from "@/components/issue-table/columns";
+import {
+  buildColumns,
+  type HierarchyInfo,
+  type IssueProgress,
+} from "@/components/issue-table/columns";
 import { usePersistedState } from "@/hooks/use-persisted-state";
 
 interface ColumnHandlers {
@@ -22,9 +25,10 @@ interface ColumnHandlers {
   onDueDateChange: (id: string, date: string | null) => void;
 }
 
-interface EpicOptions {
-  epicProgress: Map<string, EpicProgress>;
-  expandedEpics: Set<string>;
+interface HierarchyOptions {
+  issueProgress: Map<string, IssueProgress>;
+  hierarchyInfo: Map<string, HierarchyInfo>;
+  expandedIssueIds: Set<string>;
   onToggleExpand: (id: string) => void;
 }
 
@@ -33,7 +37,7 @@ export function useListTableState(
   sorting: SortingState,
   setSorting: (s: SortingState) => void,
   columnHandlers: ColumnHandlers,
-  epicOptions: EpicOptions,
+  hierarchyOptions: HierarchyOptions,
 ) {
   const COL_VIS_DEFAULTS: VisibilityState = useMemo(() => ({ has_attachments: false }), []);
   const [rawColumnVisibility, setColumnVisibility] = usePersistedState<VisibilityState>(
@@ -75,7 +79,7 @@ export function useListTableState(
     onLabelsChange,
     onDueDateChange,
   } = columnHandlers;
-  const { epicProgress, expandedEpics, onToggleExpand } = epicOptions;
+  const { issueProgress, hierarchyInfo, expandedIssueIds, onToggleExpand } = hierarchyOptions;
 
   const columns = useMemo(
     () =>
@@ -86,8 +90,9 @@ export function useListTableState(
         onAssigneeChange,
         onLabelsChange,
         onDueDateChange,
-        epicProgress,
-        expandedEpics,
+        issueProgress,
+        hierarchyInfo,
+        expandedIssueIds,
         onToggleExpand,
       }),
     [
@@ -97,8 +102,9 @@ export function useListTableState(
       onAssigneeChange,
       onLabelsChange,
       onDueDateChange,
-      epicProgress,
-      expandedEpics,
+      issueProgress,
+      hierarchyInfo,
+      expandedIssueIds,
       onToggleExpand,
     ],
   );
@@ -128,7 +134,6 @@ export function useListTableState(
       setRowSelection(next);
     },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     enableColumnResizing: true,
     columnResizeMode: "onChange",
     enableRowSelection: true,
